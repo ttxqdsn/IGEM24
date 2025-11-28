@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C++粒子动画代码展示</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/v4-shims.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#6B7280',
+                        accent: '#3B82F6',
+                        dark: '#1E293B',
+                        light: '#F8FAFC'
+                    },
+                    fontFamily: {
+                        code: ['Consolas', 'Monaco', 'monospace'],
+                        sans: ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .code-block {
+                @apply bg-dark text-light p-6 rounded-lg overflow-x-auto font-code text-sm leading-relaxed;
+            }
+            .code-keyword {
+                @apply text-purple-400 font-bold;
+            }
+            .code-type {
+                @apply text-blue-400;
+            }
+            .code-string {
+                @apply text-green-400;
+            }
+            .code-comment {
+                @apply text-gray-500 italic;
+            }
+            .code-number {
+                @apply text-yellow-400;
+            }
+            .code-function {
+                @apply text-cyan-400;
+            }
+            .code-macro {
+                @apply text-orange-400;
+            }
+            .code-variable {
+                @apply text-white;
+            }
+            .code-operator {
+                @apply text-red-400;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-5xl">
+        <!-- 页面标题 -->
+        <header class="mb-8 text-center">
+            <h1 class="text-[clamp(1.8rem,4vw,2.5rem)] font-bold text-dark mb-2">
+                <i class="fa fa-code mr-2 text-primary"></i>
+                C++粒子动画代码展示
+            </h1>
+            <p class="text-gray-600 text-lg">基于SFML的粒子系统模拟程序</p>
+        </header>
+
+        <!-- 代码卡片 -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
+            <!-- 代码标题栏 -->
+            <div class="bg-primary text-white px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center">
+                    <i class="fa fa-file-code-o mr-3 text-xl"></i>
+                    <h2 class="text-xl font-semibold">particle_animation.cpp</h2>
+                </div>
+                <div class="flex space-x-2">
+                    <button class="bg-white/20 hover:bg-white/30 px-3 py-1 rounded text-sm transition-colors" onclick="copyCode()">
+                        <i class="fa fa-copy mr-1"></i>复制代码
+                    </button>
+                </div>
+            </div>
+
+            <!-- 代码内容区域 -->
+            <div class="p-1">
+                <pre class="code-block" id="codeContent">
+<span class="code-macro">#include</span> <span class="code-string">&lt;SFML/Graphics.hpp&gt;</span>
+<span class="code-macro">#include</span> <span class="code-string">&lt;vector&gt;</span>
+<span class="code-macro">#include</span> <span class="code-string">&lt;cmath&gt;</span>
+<span class="code-macro">#include</span> <span class="code-string">&lt;random&gt;</span>
+<span class="code-macro">#include</span> <span class="code-string">&lt;iostream&gt;</span>
+<span class="code-macro">#include</span> <span class="code-string">&lt;map&gt;</span>
+<span class="code-macro">#include</span> <span class="code-string">&lt;string&gt;</span>
+<span class="code-macro">#include</span> <span class="code-string">&lt;algorithm&gt;</span>
+
+<span class="code-comment">// --- 基础参数 ---</span>
+<span class="code-keyword">const</span> <span class="code-type">int</span> WIDTH = 1500;
+<span class="code-keyword">const</span> <span class="code-type">int</span> HEIGHT = 1000;
+<span class="code-keyword">const</span> <span class="code-type">float</span> CELL_RADIUS = 4.0f;
+<span class="code-keyword">const</span> <span class="code-type">int</span> FPS = 60;
+
+<span class="code-comment">// --- 颜色定义 ---</span>
+<span class="code-keyword">const</span> sf::Color COLOR_POS(255, 50, 50);     <span class="code-comment">// 阳性: 鲜红</span>
+<span class="code-keyword">const</span> sf::Color COLOR_NEG(50, 150, 255);    <span class="code-comment">// 阴性: 鲜蓝</span>
+<span class="code-keyword">const</span> sf::Color COLOR_NEU(200, 200, 200);   <span class="code-comment">// 中性: 灰白</span>
+<span class="code-keyword">const</span> sf::Color BG_COLOR(10, 10, 10);
+
+<span class="code-comment">// --- 数据结构 ---</span>
+<span class="code-keyword">enum</span> ParticleType { POS, NEG, NEU };
+
+<span class="code-keyword">struct</span> Particle {
+    ParticleType type;
+    <span class="code-type">float</span> x, y;
+    <span class="code-type">bool</span> bonded_state;      <span class="code-comment">// 结合状态：false=未结合，true=已结合</span>
+    <span class="code-type">int</span> bonded_partners;    <span class="code-comment">// 已结合的伙伴数量</span>
+    <span class="code-type">float</span> bond_distance;    <span class="code-comment">// 结合距离阈值</span>
+    std::vector&lt;<span class="code-type">int</span>&gt; bonded_indices;  <span class="code-comment">// 已结合的粒子索引</span>
+};
+
+<span class="code-keyword">struct</span> ScenarioParams {
+    <span class="code-type">float</span> wall_bias_neu;
+    <span class="code-type">float</span> wall_bias_charged;
+    <span class="code-type">float</span> wall_dist_limit;
+    <span class="code-type">float</span> base_repulsion;
+    <span class="code-type">float</span> pair_attraction;
+    <span class="code-type">float</span> same_repulsion;
+    <span class="code-type">float</span> cross_repulsion;
+    <span class="code-type">int</span> required_bonds_positive;  <span class="code-comment">// 阳性粒子需要结合的伙伴数阈值</span>
+    <span class="code-type">int</span> required_bonds_negative;  <span class="code-comment">// 阴性粒子需要结合的伙伴数阈值</span>
+};
+
+<span class="code-keyword">struct</span> Scenario {
+    std::wstring name; <span class="code-comment">// 使用宽字符支持中文</span>
+    <span class="code-type">float</span> radius_factor;
+    std::pair&lt;<span class="code-type">int</span>, <span class="code-type">int</span>&gt; ratio;
+    ScenarioParams params;
+};
+
+<span class="code-comment">// --- 场景配置 (硬编码以匹配 Python 字典) ---</span>
+std::map&lt;<span class="code-type">int</span>, Scenario&gt; SCENARIOS = {
+    {1, {L<span class="code-string">"1. 资源掠夺 (趋壁效应)"</span>, 240.0f, {1, 1}, {2.5f, 0.8f, 200.0f, 500.0f, 10.0f, 5.0f, 0.0f, 1, 1}}},
+    {2, {L<span class="code-string">"2. 族群分离 (带隙效应)"</span>, 30.0f, {1, 1}, {0.0f, 0.0f, 0.0f, 500.0f, 60.0f, 15.0f, 80.0f, 1, 1}}},
+    {3, {L<span class="code-string">"3. 自由扩散 (小感知半径)"</span>, 7.5f, {1, 1}, {0.0f, 0.0f, 0.0f, 500.0f, 5.0f, 2.0f, 0.0f, 1, 1}}},
+    {4, {L<span class="code-string">"4. 比例 1:1 (紧密配对)"</span>, 30.0f, {1, 1}, {1.0f, 1.0f, 150.0f, 500.0f, 150.0f, 20.0f, 40.0f, 1, 1}}},
+    {5, {L<span class="code-string">"5. 比例 1:2 (1阴被2阳包围)"</span>, 30.0f, {2, 1}, {1.0f, 1.0f, 150.0f, 500.0f, 150.0f, 8.0f, 40.0f, 1, 2}}},
+    {6, {L<span class="code-string">"6. 比例 1:3 (1阴被3阳包围)"</span>, 30.0f, {3, 1}, {1.0f, 1.0f, 150.0f, 500.0f, 180.0f, 15.0f, 40.0f, 1, 3}}}
+};
+
+<span class="code-comment">// --- 随机数生成器 ---</span>
+std::random_device rd;
+std::mt19937 gen(rd());
+
+<span class="code-type">float</span> random_float(<span class="code-type">float</span> min, <span class="code-type">float</span> max) {
+    std::uniform_real_distribution&lt;<span class="code-type">float</span>&gt; dis(min, max);
+    <span class="code-keyword">return</span> dis(gen);
+}
+
+<span class="code-type">int</span> random_int(<span class="code-type">int</span> min, <span class="code-type">int</span> max) {
+    std::uniform_int_distribution&lt;&gt; dis(min, max);
+    <span class="code-keyword">return</span> dis(gen);
+}
+
+<span class="code-comment">// --- 核心逻辑 ---</span>
+
+<span class="code-type">float</span> get_distance_sq(<span class="code-keyword">const</span> Particle& p1, <span class="code-keyword">const</span> Particle& p2) {
+    <span class="code-keyword">return</span> (p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y);
+}
+
+<span class="code-type">void</span> update_bonding_states(std::vector&lt;Particle&gt;& particles, <span class="code-type">int</span> scenario_id) {
+    <span class="code-comment">// 重置所有粒子的结合伙伴计数和索引，但保留结合状态</span>
+    <span class="code-keyword">for</span> (auto& p : particles) {
+        p.bonded_partners = 0;
+        p.bonded_indices.clear();
+    }
+    
+    <span class="code-keyword">const</span> ScenarioParams& params = SCENARIOS[scenario_id].params;
+    <span class="code-type">float</span> bond_distance_sq = std::pow(CELL_RADIUS * 2.5f, 2); <span class="code-comment">// 结合距离阈值的平方</span>
+    
+    <span class="code-comment">// 检查所有粒子对之间的距离</span>
+    <span class="code-keyword">for</span> (size_t i = 0; i &lt; particles.size(); ++i) {
+        Particle& p1 = particles[i];
+        <span class="code-keyword">if</span> (p1.type == NEU) <span class="code-keyword">continue</span>; <span class="code-comment">// 中性粒子不参与结合</span>
+        
+        <span class="code-keyword">for</span> (size_t j = i + 1; j &lt; particles.size(); ++j) {
+            Particle& p2 = particles[j];
+            <span class="code-keyword">if</span> (p2.type == NEU) <span class="code-keyword">continue</span>; <span class="code-comment">// 中性粒子不参与结合</span>
+            
+            <span class="code-comment">// 只有异性电荷粒子才能结合</span>
+            <span class="code-keyword">if</span> (p1.type != p2.type) {
+                <span class="code-type">float</span> dist_sq = get_distance_sq(p1, p2);
+                
+                <span class="code-comment">// 如果粒子距离小于结合阈值</span>
+                <span class="code-keyword">if</span> (dist_sq &lt; bond_distance_sq) {
+                    <span class="code-comment">// 更新结合伙伴计数</span>
+                    p1.bonded_partners++;
+                    p2.bonded_partners++;
+                    
+                    <span class="code-comment">// 记录结合的粒子索引</span>
+                    p1.bonded_indices.push_back(j);
+                    p2.bonded_indices.push_back(i);
+                }
+            }
+        }
+    }
+    
+    <span class="code-comment">// 根据结合伙伴数量更新结合状态</span>
+    <span class="code-keyword">for</span> (auto& p : particles) {
+        <span class="code-keyword">if</span> (p.type == NEU) <span class="code-keyword">continue</span>; <span class="code-comment">// 中性粒子没有结合状态</span>
+        
+        <span class="code-type">int</span> required_bonds = 0;
+        <span class="code-keyword">if</span> (p.type == POS) {
+            required_bonds = params.required_bonds_positive;
+        } <span class="code-keyword">else</span> <span class="code-keyword">if</span> (p.type == NEG) {
+            required_bonds = params.required_bonds_negative;
+        }
+        
+        <span class="code-comment">// 如果结合伙伴数量达到或超过阈值，设置为已结合状态</span>
+        <span class="code-keyword">if</span> (p.bonded_partners &gt;= required_bonds) {
+            p.bonded_state = <span class="code-keyword">true</span>;
+        } <span class="code-keyword">else</span> {
+            p.bonded_state = <span class="code-keyword">false</span>;
+        }
+    }
+}
+
+<span class="code-type">float</span> calculate_fitness(<span class="code-keyword">const</span> Particle& particle, <span class="code-keyword">const</span> std::vector&lt;Particle&gt;& particles, <span class="code-type">int</span> p_idx, <span class="code-type">float</span> sensing_radius, <span class="code-type">int</span> scenario_id) {
+    <span class="code-type">float</span> score = 0.0f;
+    <span class="code-type">float</span> sensing_radius_sq = sensing_radius * sensing_radius;
+    <span class="code-keyword">const</span> ScenarioParams& params = SCENARIOS[scenario_id].params;
+
+    <span class="code-comment">// 基础距离定义</span>
+    <span class="code-type">float</span> R = CELL_RADIUS;
+    <span class="code-type">float</span> hard_shell_sq = std::pow(2.1f * R, 2);
+    <span class="code-type">float</span> repulsion_range_sq = std::pow(12.0f * R, 2);
+
+    <span class="code-comment">// --- 1. 墙壁效应 ---</span>
+    <span class="code-keyword">if</span> (params.wall_bias_neu &gt; 0 || params.wall_bias_charged &gt; 0) {
+        <span class="code-type">float</span> d_left = particle.x;
+        <span class="code-type">float</span> d_right = WIDTH - particle.x;
+        <span class="code-type">float</span> d_top = particle.y;
+        <span class="code-type">float</span> d_bottom = HEIGHT - particle.y;
+        <span class="code-type">float</span> min_wall_dist = std::min({d_left, d_right, d_top, d_bottom});
+
+        <span class="code-type">float</span> limit = params.wall_dist_limit;
+        <span class="code-keyword">if</span> (min_wall_dist &lt; limit) {
+            <span class="code-type">float</span> factor = 0;
+            <span class="code-keyword">if</span> (particle.type == NEU) factor = params.wall_bias_neu;
+            <span class="code-keyword">else</span> factor = params.wall_bias_charged;
+            score += (limit - min_wall_dist) * factor;
+        }
+    }
+
+    <span class="code-comment">// --- 2. 粒子间相互作用 ---</span>
+    <span class="code-keyword">for</span> (size_t i = 0; i &lt; particles.size(); ++i) {
+        <span class="code-keyword">if</span> (i == p_idx) <span class="code-keyword">continue</span>; <span class="code-comment">// 跳过自己</span>
+
+        <span class="code-keyword">const</span> Particle& other = particles[i];
+        <span class="code-type">float</span> dist_sq = get_distance_sq(particle, other);
+
+        <span class="code-comment">// 对于场景1，特殊处理：保留阴阳粒子结合，跳过其他距离限制</span>
+        <span class="code-keyword">if</span> (scenario_id == 1) {
+            <span class="code-comment">// 只保留阴阳粒子间的吸引力</span>
+            <span class="code-type">bool</span> is_p_pos = (particle.type == POS);
+            <span class="code-type">bool</span> is_p_neg = (particle.type == NEG);
+            <span class="code-type">bool</span> is_o_pos = (other.type == POS);
+            <span class="code-type">bool</span> is_o_neg = (other.type == NEG);
+            
+            <span class="code-comment">// 只处理阳性和阴性粒子之间的吸引力</span>
+            <span class="code-keyword">if</span> ((is_p_pos && is_o_neg) || (is_p_neg && is_o_pos)) {
+                <span class="code-keyword">if</span> (params.pair_attraction &gt; 0 && !particle.bonded_state && !other.bonded_state) {
+                    <span class="code-comment">// 进一步扩大作用范围到24.0f * R，显著增加寻路范围</span>
+                    <span class="code-keyword">if</span> (dist_sq &lt; std::pow(50.0f * R, 2)) {
+                        <span class="code-comment">// 进一步增加吸引力强度的系数，从2000.0f增加到4000.0f</span>
+                        score += params.pair_attraction * (1.0f / (dist_sq + 1.0f)) * 8000.0f;
+                    }
+                }
+            }
+            <span class="code-comment">// 跳过所有其他距离限制检查</span>
+            <span class="code-keyword">continue</span>;
+        }
+
+        <span class="code-comment">// A. 绝对刚体排斥 - 增强版本</span>
+        <span class="code-keyword">if</span> (dist_sq &lt; hard_shell_sq) {
+            <span class="code-comment">// 使用随距离减小而指数增长的排斥力，防止粒子重合卡住</span>
+            <span class="code-comment">// 当距离趋近于0时，排斥力趋近于无穷大</span>
+            <span class="code-type">float</span> min_distance_sq = std::pow(2.0f * R, 2); <span class="code-comment">// 粒子刚好接触时的距离平方</span>
+            <span class="code-keyword">if</span> (dist_sq &lt; min_distance_sq) {
+                <span class="code-comment">// 当粒子重叠时，使用更强的排斥力</span>
+                <span class="code-type">float</span> overlap_factor = 1.0f - (dist_sq / min_distance_sq);
+                <span class="code-comment">// 指数增长的排斥力，系数可以根据需要调整</span>
+                score -= params.base_repulsion * (1.0f + overlap_factor * 1000.0f);
+            } <span class="code-keyword">else</span> {
+                <span class="code-comment">// 当粒子接近但未重叠时，使用基础排斥力</span>
+                score -= params.base_repulsion * 10.0f;
+            }
+            <span class="code-keyword">continue</span>;
+        }
+
+        <span class="code-keyword">if</span> (dist_sq &gt; sensing_radius_sq) <span class="code-keyword">continue</span>;
+
+        <span class="code-type">bool</span> is_p_charged = (particle.type == POS || particle.type == NEG);
+        <span class="code-type">bool</span> is_o_charged = (other.type == POS || other.type == NEG);
+
+        <span class="code-comment">// B. 带电 vs 中性</span>
+        <span class="code-keyword">if</span> (is_p_charged != is_o_charged) {
+            <span class="code-keyword">if</span> (params.cross_repulsion &gt; 0) {
+                <span class="code-type">float</span> expanded_repulsion_range_sq = std::pow(20.0f * R, 2); <span class="code-comment">// 12.0f * R * 5 = 60.0f * R</span>
+                <span class="code-keyword">if</span> (dist_sq &lt; expanded_repulsion_range_sq) {
+                    score -= params.cross_repulsion * (1.0f - dist_sq / expanded_repulsion_range_sq) * 20.0f;
+                }
+            }
+        }
+        <span class="code-comment">// C. 带电 vs 带电</span>
+        <span class="code-keyword">else</span> <span class="code-keyword">if</span> (is_p_charged && is_o_charged) {
+            <span class="code-keyword">if</span> (particle.type == other.type) {
+                <span class="code-comment">// 同性排斥</span>
+                <span class="code-keyword">if</span> (params.same_repulsion &gt; 0) {
+                    <span class="code-keyword">if</span> (dist_sq &lt; repulsion_range_sq) {
+                        score -= params.same_repulsion * (1.0f - dist_sq / repulsion_range_sq) * 80.0f;
+                    }
+                }
+            } <span class="code-keyword">else</span> {
+                <span class="code-comment">// 异性吸引</span>
+                <span class="code-keyword">if</span> (params.pair_attraction &gt; 0) {
+                    <span class="code-comment">// 检查粒子是否已结合 - 如果任意一个已结合，则不计算吸引力</span>
+                    <span class="code-keyword">if</span> (!particle.bonded_state && !other.bonded_state) {
+                        <span class="code-comment">// 进一步扩大作用范围到24.0f * R，显著增加寻路范围</span>
+                        <span class="code-keyword">if</span> (dist_sq &lt; std::pow(50.0f * R, 2)) {
+                            <span class="code-comment">// 进一步增加吸引力强度的系数，从2000.0f增加到4000.0f</span>
+                            score += params.pair_attraction * (1.0f / (dist_sq + 1.0f)) * 8000.0f;
+                        }
+                    }
+                }
+            }
+        }
+        <span class="code-comment">// D. 中性 vs 中性</span>
+        <span class="code-keyword">else</span> <span class="code-keyword">if</span> (!is_p_charged && !is_o_charged) {
+            <span class="code-comment">// 中性粒子之间的排斥力，保持适当距离</span>
+            <span class="code-type">float</span> neu_repulsion_range_sq = std::pow(10.0f * R, 2);
+            <span class="code-keyword">if</span> (dist_sq &lt; neu_repulsion_range_sq) {
+                <span class="code-comment">// 使用适当的排斥力系数，与同性排斥类似但强度可能需要调整</span>
+                score -= params.same_repulsion * (1.0f - dist_sq / neu_repulsion_range_sq) * 60.0f;
+            }
+        }
+    }
+    <span class="code-keyword">return</span> score;
+}
+
+<span class="code-type">void</span> init_particles(<span class="code-type">int</span> scenario_id, std::vector&lt;Particle&gt;& particles, <span class="code-type">float</span>& sensing_radius) {
+    particles.clear();
+    <span class="code-keyword">const</span> Scenario& config = SCENARIOS[scenario_id];
+    
+    <span class="code-type">int</span> total_p, num_neu;
+    <span class="code-keyword">if</span> (scenario_id == 1) { total_p = 600; num_neu = 300; }
+    <span class="code-keyword">else</span> <span class="code-keyword">if</span> (scenario_id == 2) { total_p = 400; num_neu = 200; }
+    <span class="code-comment">// 为配对模型（4,5,6）增加中性粒子数量</span>
+    <span class="code-keyword">else</span> <span class="code-keyword">if</span> (scenario_id == 4 || scenario_id == 5 || scenario_id == 6) { 
+        total_p = 850; <span class="code-comment">// 增加总粒子数</span>
+        num_neu = 300; <span class="code-comment">// 显著增加中性粒子数量，从50个增加到200个</span>
+    }
+    <span class="code-keyword">else</span> { total_p = 350; num_neu = 50; } <span class="code-comment">// 其他模型保持不变</span>
+
+    <span class="code-type">int</span> remaining = total_p - num_neu;
+    <span class="code-type">float</span> r_pos = (<span class="code-type">float</span>)config.ratio.first;
+    <span class="code-type">float</span> r_neg = (<span class="code-type">float</span>)config.ratio.second;
+    <span class="code-type">float</span> total_ratio = r_pos + r_neg;
+
+    <span class="code-comment">// 优化粒子数量比例，确保异性粒子能够正确配对</span>
+    <span class="code-comment">// 对于非1:1比例的场景，保证数量较少的类型有足够的粒子</span>
+    <span class="code-type">int</span> num_pos, num_neg;
+    <span class="code-keyword">if</span> (scenario_id == 4 || scenario_id == 5 || scenario_id == 6) { <span class="code-comment">// 这些场景专为配对设计</span>
+        <span class="code-comment">// 确保数量较少的类型有足够的粒子与数量较多的类型配对</span>
+        <span class="code-keyword">if</span> (r_pos &gt; r_neg) { <span class="code-comment">// 阳多阴少</span>
+            num_neg = std::max(30, (<span class="code-type">int</span>)(remaining / (r_pos + r_neg) * r_neg)); <span class="code-comment">// 至少30个阴性粒子</span>
+            num_pos = remaining - num_neg;
+        } <span class="code-keyword">else</span> <span class="code-keyword">if</span> (r_neg &gt; r_pos) { <span class="code-comment">// 阴多阳少</span>
+            num_pos = std::max(30, (<span class="code-type">int</span>)(remaining / (r_pos + r_neg) * r_pos)); <span class="code-comment">// 至少30个阳性粒子</span>
+            num_neg = remaining - num_pos;
+        } <span class="code-keyword">else</span> { <span class="code-comment">// 1:1比例</span>
+            num_pos = (<span class="code-type">int</span>)(remaining * 0.5f);
+            num_neg = remaining - num_pos;
+        }
+    } <span class="code-keyword">else</span> {
+        <span class="code-comment">// 其他场景保持原有计算方式</span>
+        num_pos = (<span class="code-type">int</span>)(remaining * (r_pos / total_ratio));
+        num_neg = remaining - num_pos;
+    }
+    
+    <span class="code-comment">// 确保至少有10个阳性和10个阴性粒子，保证配对可能性</span>
+    num_pos = std::max(10, num_pos);
+    num_neg = std::max(10, num_neg);
+    
+    <span class="code-comment">// 重新平衡总数，确保不超过remaining</span>
+    <span class="code-type">int</span> total_charged = num_pos + num_neg;
+    <span class="code-keyword">if</span> (total_charged &gt; remaining) {
+        <span class="code-type">float</span> scale_factor = (<span class="code-type">float</span>)remaining / (<span class="code-type">float</span>)total_charged;
+        num_pos = (<span class="code-type">int</span>)(num_pos * scale_factor);
+        num_neg = remaining - num_pos;
+    }
+
+    auto add_particles = [&](<span class="code-type">int</span> count, ParticleType type) {
+        <span class="code-keyword">for</span> (<span class="code-type">int</span> i = 0; i &lt; count; ++i) {
+            Particle p;
+            p.type = type;
+            p.x = random_float(50, WIDTH - 50);
+            p.y = random_float(50, HEIGHT - 50);
+            p.bonded_state = <span class="code-keyword">false</span>;      <span class="code-comment">// 初始未结合</span>
+            p.bonded_partners = 0;       <span class="code-comment">// 初始结合伙伴数为0</span>
+            p.bond_distance = CELL_RADIUS * 2.5f;  <span class="code-comment">// 结合距离阈值</span>
+            <span class="code-comment">// 初始化结合索引向量</span>
+            particles.push_back(p);
+        }
+    };
+
+    add_particles(num_pos, POS);
+    add_particles(num_neg, NEG);
+    add_particles(num_neu, NEU);
+
+    <span class="code-comment">// 计算场景对角线长度，确保感知半径足够大以覆盖整个场景</span>
+    <span class="code-type">float</span> diagonal = std::sqrt(WIDTH * WIDTH + HEIGHT * HEIGHT);
+    sensing_radius = diagonal / 2.0f; <span class="code-comment">// 设置感知半径为对角线的一半，确保覆盖整个场景</span>
+}
+
+<span class="code-type">int</span> main() {
+    <span class="code-comment">// 启用抗锯齿</span>
+    sf::ContextSettings settings;
+    settings.antialiasingLevel = 8;
+    sf::RenderWindow window(sf::VideoMode(WIDTH, HEIGHT), <span class="code-string">"Model3 Particle Animation (C++)"</span>, sf::Style::Default, settings);
+    window.setFramerateLimit(FPS);
+
+    <span class="code-comment">// 加载字体 (Windows 默认路径)</span>
+    sf::Font font;
+    <span class="code-keyword">if</span> (!font.loadFromFile(<span class="code-string">"C:/Windows/Fonts/simhei.ttf"</span>)) {
+        <span class="code-comment">// 如果找不到黑体，尝试 Arial</span>
+        <span class="code-keyword">if</span> (!font.loadFromFile(<span class="code-string">"C:/Windows/Fonts/arial.ttf"</span>)) {
+            std::cerr &lt;&lt; <span class="code-string">"Error loading font"</span> &lt;&lt; std::endl;
+            <span class="code-keyword">return</span> -1;
+        }
+    }
+
+    <span class="code-type">int</span> current_scenario = 1;
+    std::vector&lt;Particle&gt; particles;
+    <span class="code-type">float</span> sensing_radius;
+    init_particles(current_scenario, particles, sensing_radius);
+
+    <span class="code-type">float</span> T = 20.0f;
+    <span class="code-type">long</span> <span class="code-type">long</span> iteration = 0;
+
+    <span class="code-keyword">while</span> (window.isOpen()) {
+        sf::Event event;
+        <span class="code-keyword">while</span> (window.pollEvent(event)) {
+            <span class="code-keyword">if</span> (event.type == sf::Event::Closed)
+                window.close();
+            
+            <span class="code-keyword">if</span> (event.type == sf::Event::KeyPressed) {
+                <span class="code-keyword">if</span> (event.key.code &gt;= sf::Keyboard::Num1 && event.key.code &lt;= sf::Keyboard::Num6) {
+                    <span class="code-type">int</span> idx = event.key.code - sf::Keyboard::Num0;
+                    <span class="code-keyword">if</span> (SCENARIOS.count(idx)) {
+                        current_scenario = idx;
+                        init_particles(current_scenario, particles, sensing_radius);
+                        T = 20.0f;
+                        iteration = 0;
+                    }
+                }
+            }
+        }
+
+        <span class="code-comment">// --- 蒙特卡洛迭代 ---</span>
+        <span class="code-type">int</span> steps_per_frame = 1000;
+        std::uniform_int_distribution&lt;&gt; p_dist(0, particles.size() - 1);
+
+        <span class="code-keyword">for</span> (<span class="code-type">int</span> k = 0; k &lt; steps_per_frame; ++k) {
+            <span class="code-type">int</span> idx = p_dist(gen);
+            Particle& p = particles[idx];
+
+            <span class="code-type">float</span> old_x = p.x;
+            <span class="code-type">float</span> old_y = p.y;
+            <span class="code-type">float</span> old_score = calculate_fitness(p, particles, idx, sensing_radius, current_scenario);
+
+            <span class="code-type">float</span> step = 5.0f;
+            <span class="code-type">float</span> dx = random_float(-step, step);
+            <span class="code-type">float</span> dy = random_float(-step, step);
+
+            p.x += dx;
+            p.y += dy;
+
+            <span class="code-comment">// 边界限制</span>
+            p.x = std::max(CELL_RADIUS, std::min((<span class="code-type">float</span>)WIDTH - CELL_RADIUS, p.x));
+            p.y = std::max(CELL_RADIUS, std::min((<span class="code-type">float</span>)HEIGHT - CELL_RADIUS, p.y));
+
+            <span class="code-type">float</span> new_score = calculate_fitness(p, particles, idx, sensing_radius, current_scenario);
+            <span class="code-type">float</span> delta_S = new_score - old_score;
+
+            <span class="code-type">bool</span> accept = <span class="code-keyword">false</span>;
+            <span class="code-keyword">if</span> (delta_S &gt; 0) {
+                accept = <span class="code-keyword">true</span>;
+            } <span class="code-keyword">else</span> {
+                <span class="code-keyword">if</span> (T &gt; 0.01f) {
+                    <span class="code-keyword">if</span> (random_float(0.0f, 1.0f) &lt; std::exp(delta_S / T)) {
+                        accept = <span class="code-keyword">true</span>;
+                    }
+                }
+            }
+
+            <span class="code-keyword">if</span> (!accept) {
+                p.x = old_x;
+                p.y = old_y;
+            }
+        }
+
+        <span class="code-comment">// 温度衰减</span>
+        <span class="code-keyword">if</span> (T &gt; 0.1f) T *= 0.999f;
+        iteration += steps_per_frame;
+        
+        <span class="code-comment">// 更新粒子结合状态</span>
+        update_bonding_states(particles, current_scenario);
+
+        <span class="code-comment">// --- 绘制 ---</span>
+        window.clear(BG_COLOR);
+
+        <span class="code-comment">// 绘制粒子</span>
+        sf::CircleShape circle(CELL_RADIUS);
+        circle.setOrigin(CELL_RADIUS, CELL_RADIUS); <span class="code-comment">// 设置圆心为原点</span>
+
+        <span class="code-keyword">for</span> (<span class="code-keyword">const</span> auto& p : particles) {
+            circle.setPosition(p.x, p.y);
+            <span class="code-comment">// 保持原有颜色，不随结合状态改变</span>
+            <span class="code-keyword">if</span> (p.type == POS) circle.setFillColor(COLOR_POS);
+            <span class="code-keyword">else</span> <span class="code-keyword">if</span> (p.type == NEG) circle.setFillColor(COLOR_NEG);
+            <span class="code-keyword">else</span> circle.setFillColor(COLOR_NEU);
+            
+            <span class="code-comment">// 移除结合状态对视觉效果的影响，所有粒子使用相同的描边设置</span>
+            circle.setOutlineThickness(-1.0f); <span class="code-comment">// 向内描边</span>
+            circle.setOutlineColor(circle.getFillColor()); <span class="code-comment">// 保持同色</span>
+            
+            window.draw(circle);
+        }
+
+        <span class="code-comment">// UI 显示</span>
+        <span class="code-keyword">const</span> Scenario& info = SCENARIOS[current_scenario];
+        
+        sf::Text text;
+        text.setFont(font);
+        text.setCharacterSize(24);
+        text.setFillColor(sf::Color::White);
+
+        <span class="code-comment">// 第一行</span>
+        text.setString(info.name);
+        text.setPosition(20, 20);
+        window.draw(text);
+
+        <span class="code-comment">// 第二行</span>
+        text.setString(L<span class="code-string">"感知半径: "</span> + std::to_wstring((<span class="code-type">int</span>)info.radius_factor) + L<span class="code-string">" * R"</span>);
+        text.setFillColor(sf::Color(200, 200, 100));
+        text.setPosition(20, 50);
+        window.draw(text);
+
+        <span class="code-comment">// 第三行</span>
+        <span class="code-comment">// std::to_string 对于浮点数格式化不如 printf 灵活，这里简单处理</span>
+        <span class="code-type">char</span> buffer[100];
+        sprintf_s(buffer, <span class="code-string">"迭代: %lld | 温度 T: %.2f"</span>, iteration, T);
+        <span class="code-comment">// 将 char* 转换为 wstring 以支持中文环境下的统一显示</span>
+        std::string s_buff(buffer);
+        std::wstring ws_buff(s_buff.begin(), s_buff.end());
+        
+        text.setString(ws_buff);
+        text.setFillColor(sf::Color(150, 150, 150));
+        text.setPosition(20, 80);
+        window.draw(text);
+
+        <span class="code-comment">// 第四行</span>
+        text.setString(L<span class="code-string">"按键 1-6 切换场景"</span>);
+        text.setFillColor(sf::Color(100, 100, 100));
+        text.setPosition(20, 110);
+        window.draw(text);
+
+        window.display();
+    }
+
+    <span class="code-keyword">return</span> 0;
+}
+                </pre>
+            </div>
+        </div>
+
+        <!-- 代码说明 -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <h3 class="text-xl font-semibold text-dark mb-4">
+                <i class="fa fa-info-circle mr-2 text-primary"></i>
+                代码说明
+            </h3>
+            <div class="space-y-4 text-gray-700">
+                <div class="flex items-start">
+                    <div class="bg-primary/10 rounded-full p-2 mr-4">
+                        <i class="fa fa-lightbulb-o text-primary"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-dark">程序功能</h4>
+                        <p>这是一个基于SFML库的粒子系统模拟程序，实现了不同类型粒子（阳性、阴性、中性）之间的相互作用模拟。</p>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <div class="bg-primary/10 rounded-full p-2 mr-4">
+                        <i class="fa fa-cogs text-primary"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-dark">核心特性</h4>
+                        <ul class="list-disc list-inside space-y-1">
+                            <li>6种不同的模拟场景，展示不同的粒子行为模式</li>
+                            <li>蒙特卡洛算法实现粒子运动模拟</li>
+                            <li>粒子结合状态管理系统</li>
+                            <li>支持键盘切换不同模拟场景</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <div class="bg-primary/10 rounded-full p-2 mr-4">
+                        <i class="fa fa-keyboard-o text-primary"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-dark">操作说明</h4>
+                        <p>运行程序后，使用键盘数字键1-6切换不同的模拟场景。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 页脚 -->
+        <footer class="text-center text-gray-600 mt-12">
+            <p>© 2025 C++粒子动画展示 | 基于SFML图形库</p>
+        </footer>
+    </div>
+
+    <script>
+        // 复制代码功能
+        function copyCode() {
+            const codeElement = document.getElementById('codeContent');
+            const codeText = codeElement.textContent;
+            
+            navigator.clipboard.writeText(codeText).then(() => {
+                // 显示复制成功提示
+                const button = document.querySelector('button');
+                const originalText = button.innerHTML;
+                button.innerHTML = '<i class="fa fa-check mr-1"></i>复制成功';
+                button.classList.add('bg-green-500');
+                
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.classList.remove('bg-green-500');
+                }, 2000);
+            }).catch(err => {
+                console.error('复制失败:', err);
+            });
+        }
+
+        // 平滑滚动
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        // 代码块悬停效果
+        const codeBlock = document.querySelector('.code-block');
+        codeBlock.addEventListener('mouseenter', () => {
+            codeBlock.style.transform = 'scale(1.005)';
+            codeBlock.style.transition = 'transform 0.3s ease';
+        });
+        
+        codeBlock.addEventListener('mouseleave', () => {
+            codeBlock.style.transform = 'scale(1)';
+        });
+    </script>
+</body>
+</html>
