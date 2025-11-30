@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>相关聊天记录展示</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+            background-color: #f5f7fa;
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+
+        /* 页面标题样式 */
+        .page-title {
+            text-align: center;
+            color: #2d3748;
+            font-size: 32px;
+            margin-bottom: 50px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            position: relative;
+            display: inline-block;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .page-title::after {
+            content: "";
+            display: block;
+            width: 80px;
+            height: 3px;
+            background: linear-gradient(90deg, #4299e1, #38b2ac);
+            border-radius: 3px;
+            margin: 15px auto 0;
+        }
+
+        .img-row {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 60px;
+            flex-wrap: wrap;
+        }
+
+        /* 图片卡片样式 */
+        .img-card {
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            padding: 20px;
+            transition: all 0.3s ease;
+            max-width: 400px;
+            border: 1px solid #f0f4f8;
+        }
+
+        .img-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+            border-color: #e8f4f8;
+            background-color: #fafdff;
+        }
+
+        .card-title {
+            text-align: center;
+            font-size: 18px;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        /* 组别标签样式 */
+        .group-tag {
+            display: inline-block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #4299e1;
+            background-color: #e8f4f8;
+            padding: 3px 10px;
+            border-radius: 20px;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        /* 人名文字样式 */
+        .name-text {
+            font-size: 16px;
+            font-weight: 500;
+            color: #2d3748;
+            vertical-align: middle;
+        }
+
+        .img-card img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            object-fit: contain;
+            display: block;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        /* 序号标签样式 */
+        .num-tag {
+            display: inline-block;
+            background-color: #f0f8fb;
+            color: #33b8b2;
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-left: 3px;
+            vertical-align: middle;
+            font-weight: 600;
+        }
+
+        /* 响应式适配 */
+        @media (max-width: 900px) {
+            .img-row {
+                flex-direction: column;
+                align-items: center;
+            }
+            .img-card {
+                width: 90%;
+            }
+            .page-title {
+                font-size: 26px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1 class="page-title">相关聊天记录</h1>
+
+    <div class="img-row">
+        <div class="img-card">
+            <h2 class="card-title">
+                <span class="group-tag">湿组</span>
+                <span class="name-text">张晨玥</span>
+            </h2>
+            <img src="zcy.jpg" alt="与张晨玥的聊天记录">
+        </div>
+        <div class="img-card">
+            <h2 class="card-title">
+                <span class="group-tag">湿组</span>
+                <span class="name-text">蔡恺玲</span>
+            </h2>
+            <img src="ckl.jpg" alt="与蔡恺玲的聊天记录">
+        </div>
+    </div>
+
+    <div class="img-row">
+        <div class="img-card">
+            <h2 class="card-title">
+                <span class="group-tag">数模组</span>
+                <span class="name-text">潘旭</span>
+                <span class="num-tag">1</span>
+            </h2>
+            <img src="px1.jpg" alt="与潘旭的聊天记录1">
+        </div>
+        <div class="img-card">
+            <h2 class="card-title">
+                <span class="group-tag">数模组</span>
+                <span class="name-text">潘旭</span>
+                <span class="num-tag">2</span>
+            </h2>
+            <img src="px2.jpg" alt="与潘旭的聊天记录2">
+        </div>
+    </div>
+</body>
+</html>
